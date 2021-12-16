@@ -68,7 +68,7 @@ bool ngx_c_conf::load(const char* configFileName)
         //Çå³ý×Ö·û´®Ä©Î²µÄÌØÊâ·ûºÅ
         while (strlen(linebuf) > 0)
         {
-            if (linebuf[strlen(linebuf) - 1] == '\t' || linebuf[strlen(linebuf) - 1] == '\n' || linebuf[strlen(linebuf) - 1] == ' ')
+            if (linebuf[strlen(linebuf) - 1] == '\r' || linebuf[strlen(linebuf) - 1] == '\t' || linebuf[strlen(linebuf) - 1] == '\n' || linebuf[strlen(linebuf) - 1] == ' ')
             {
                 linebuf[strlen(linebuf) - 1] = '\0';
             }
@@ -77,6 +77,7 @@ bool ngx_c_conf::load(const char* configFileName)
                 break;
             }
         }
+
         if (strlen(linebuf) == 0)
         {
             continue;

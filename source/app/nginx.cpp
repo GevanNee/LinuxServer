@@ -12,8 +12,13 @@
 #include "ngx_c_conf.h"
 #include "ngx_func.h"
 #include "ngx_global.h"
+#include "ngx_macro.h"
 
 using namespace std;
+
+pid_t ngx_pid;
+pid_t ngx_parent;
+
 
 void freeResource()
 {
@@ -22,13 +27,12 @@ void freeResource()
 		close(ngx_log.fd);
 		ngx_log.fd = -1;
 	}
-	
 }
 
 void timeTest()
 {
-	u_char* last;
-	u_char  errstr[20 + 1];   //这个+1也是我放入进来的，本函数可以参考ngx_log_stderr()函数的写法；
+	u_char*		     last;
+	u_char		     errstr[20 + 1];   //这个+1也是我放入进来的，本函数可以参考ngx_log_stderr()函数的写法；
 
 	memset(errstr, 0, sizeof(errstr));
 	last = errstr + 20;
@@ -36,7 +40,7 @@ void timeTest()
 	struct timeval   tv;
 	struct tm        tm;
 	time_t           sec;   //秒
-	u_char* p;    //指向当前要拷贝数据到其中的内存位置
+	u_char*			 p;    //指向当前要拷贝数据到其中的内存位置
 	va_list          args;
 
 	memset(&tv, 0, sizeof(struct timeval));
@@ -76,15 +80,55 @@ void logTest()
 	ngx_log_init();
 	u_char myName[10]{ "LDY" };
 	ngx_log_stderr(errno, "myName = %s, myAge = %d", myName, 25);
+	ngx_log_core(NGX_LOG_ERROR, 2, "here: %P", ngx_pid);
 }
 
 
 int main()
 {
-	timeTest();
+	int   exitcode = 0;
+
+	ngx_pid = getpid();
+	ngx_parent = getppid();
+
+	ngx_c_conf* p_config = ngx_c_conf::getInstance();
+	if (p_config == nullptr)
+	{
+		ngx_log_stderr(0, "config init fail!!!!");
+	}
+
+	if (p_config->load("./ngx_conf.conf") == false)
+	{
+		ngx_log_stderr(0, "config load fail!!!!");
+	}
+
+	ngx_log_init();
+
+	if (p_config->getInt("Daemon", 0) == 1)
+	{
+		int ret = ngx_daemon();
+		if (ret == -1)
+		{
+			ngx_log_stderr(errno, "失败了");
+			return -1;
+		}
+		if (ret == 1)
+		{
+			ngx_log_stderr(errno, "主进程退出");
+			freeResource();
+			exitcode = 0;
+			return exitcode;
+		}
+	}
 	
-	//logTest();
-	//getpid();
-	//freeResource();
+	while(1)
+	{
+		sleep(1);
+		//ngx_log_core(NGX_LOG_DEBUG, errno, "here: %P", ngx_pid);
+		ngx_log_core(NGX_LOG_DEBUG, errno, "while主流程 当前进程是：%P， 父进程是：%P", ngx_pid, ngx_parent);
+		ngx_log_stderr(errno, "while主流程 当前进程是：%P， 父进程是：%P", ngx_pid, ngx_parent);
+	}
+
+	freeResource();
 	return 0; 
 }
